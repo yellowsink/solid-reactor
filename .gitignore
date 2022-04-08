@@ -1,0 +1,4 @@
+dist
+node_modules
+# use pnpm smh
+package-lock.json
