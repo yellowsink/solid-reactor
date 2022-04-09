@@ -8,45 +8,41 @@ import {
   transform,
 } from "@swc/core";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
+import jsxTransform from "./jsxTransform.js";
+import { emitBlockStatement, emitExpressionStatement } from "./emitters.js";
 
 class Reactor extends Visitor {
   visitExpression(n: Expression): Expression {
-    if (n.type === "FunctionExpression" || n.type === "ArrowFunctionExpression")
-      return this.#visitFunctions(
-        n,
+    if (
+      n.type === "FunctionExpression" ||
+      n.type === "ArrowFunctionExpression"
+    ) {
+      const newBody = this.#visitFunctionBodies(
         n.body.type === "BlockStatement"
           ? n.body
-          : {
-              type: "BlockStatement",
-              span: { start: 0, end: 0, ctxt: 0 },
-              stmts: [
-                {
-                  type: "ExpressionStatement",
-                  span: { start: 0, end: 0, ctxt: 0 },
-                  expression: n.body,
-                },
-              ],
-            }
+          : emitBlockStatement(emitExpressionStatement(n.body))
       );
+      if (newBody) n.body = newBody;
+    }
 
     return n;
   }
 
-  #visitFunctions(
-    n: FunctionExpression | ArrowFunctionExpression,
-    body: BlockStatement
-  ): FunctionExpression | ArrowFunctionExpression {
-    const hookStmts = body.stmts.map(stmtExtractReactHooks).filter((s): s is ReactHook[] => !!s).flat();
+  #visitFunctionBodies(body: BlockStatement): BlockStatement | undefined {
+    const hookStmts = body.stmts
+      .map((s, i) => [i, stmtExtractReactHooks(s)])
+      .filter((s): s is [number, ReactHook[]] => !!s[1])
+      .flat();
 
-    if (hookStmts.length === 0) return n;
+    if (hookStmts.length === 0) return;
 
     console.log(hookStmts);
 
-    return n;
+    return body;
   }
 }
 
-const transformed = await transform(
+const transformed = await jsxTransform(
   `
 
 export default () => {
@@ -55,7 +51,15 @@ export default () => {
   let rerender;
   [, rerender] = useReducer(a => ~a, 0);
 
-  return <div>balls</div>
+  return (
+    <>
+      <button onClick={() => setState(state * 2)}/>
+      {state}
+      <div>
+        <span className={state}/>
+      </div>
+    </>
+  );
 }
 
 `,
