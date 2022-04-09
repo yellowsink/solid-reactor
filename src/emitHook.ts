@@ -1,3 +1,5 @@
+// emits a sensible set of code from a ReactHook
+
 import { Statement, VariableDeclarationKind } from "@swc/core";
 import {
   emitArrayPattern,

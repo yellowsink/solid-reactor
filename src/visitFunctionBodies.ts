@@ -1,6 +1,7 @@
 // transform function to be ran on the body of every function hit
 
 import { BlockStatement, Statement } from "@swc/core";
+import callify from "./callify.js";
 import emitHook from "./emitHook.js";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 
@@ -15,12 +16,12 @@ export default (body: BlockStatement): BlockStatement | undefined => {
     .map(([, hook]) => hook.return?.get)
     .filter((g): g is string => !!g);
 
-  console.log(getters);
-
   for (const hookStmt of hookStmts) {
     const newHook = emitHook(hookStmt[1]);
     if (newHook) body.stmts[hookStmt[0]] = newHook;
   }
+
+  callify(body, getters);
 
   return body;
 };
