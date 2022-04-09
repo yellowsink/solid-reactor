@@ -1,3 +1,5 @@
+// Parses React hooks out of an AST
+
 import {
   Expression,
   Super,

@@ -1,3 +1,5 @@
+// like tranform() but outputs JSX
+
 // swc discord said outputting jsx needed rust
 // well they were wrong L
 

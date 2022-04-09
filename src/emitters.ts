@@ -1,3 +1,5 @@
+// emits new AST members
+
 import type {
   AssignmentExpression,
   CallExpression,

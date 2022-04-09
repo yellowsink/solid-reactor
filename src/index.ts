@@ -1,15 +1,8 @@
 import { Visitor } from "@swc/core/Visitor.js";
-import {
-  ArrowFunctionExpression,
-  BlockStatement,
-  Expression,
-  FunctionExpression,
-  parseSync,
-  transform,
-} from "@swc/core";
-import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
+import { Expression } from "@swc/core";
 import jsxTransform from "./jsxTransform.js";
 import { emitBlockStatement, emitExpressionStatement } from "./emitters.js";
+import visitFunctionBodies from "./visitFunctionBodies.js";
 
 class Reactor extends Visitor {
   visitExpression(n: Expression): Expression {
@@ -17,7 +10,7 @@ class Reactor extends Visitor {
       n.type === "FunctionExpression" ||
       n.type === "ArrowFunctionExpression"
     ) {
-      const newBody = this.#visitFunctionBodies(
+      const newBody = visitFunctionBodies(
         n.body.type === "BlockStatement"
           ? n.body
           : emitBlockStatement(emitExpressionStatement(n.body))
@@ -26,19 +19,6 @@ class Reactor extends Visitor {
     }
 
     return n;
-  }
-
-  #visitFunctionBodies(body: BlockStatement): BlockStatement | undefined {
-    const hookStmts = body.stmts
-      .map((s, i) => [i, stmtExtractReactHooks(s)])
-      .filter((s): s is [number, ReactHook[]] => !!s[1])
-      .flat();
-
-    if (hookStmts.length === 0) return;
-
-    console.log(hookStmts);
-
-    return body;
   }
 }
 
