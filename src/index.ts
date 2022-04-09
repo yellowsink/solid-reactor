@@ -1,23 +1,60 @@
 import { Visitor } from "@swc/core/Visitor.js";
-import { Expression } from "@swc/core";
+import {
+  ArrowFunctionExpression,
+  Declaration,
+  Expression,
+  FunctionDeclaration,
+  FunctionExpression,
+  JSXAttribute,
+  JSXAttributeName,
+  JSXAttributeOrSpread,
+  JSXElement,
+  JSXFragment,
+  JSXOpeningElement,
+} from "@swc/core";
 import jsxTransform from "./jsxTransform.js";
-import { emitBlockStatement, emitExpressionStatement } from "./emitters.js";
+import {
+  emitBlockStatement,
+  emitExpressionStatement,
+  emitIdentifier,
+} from "./emitters.js";
 import visitFunctionBodies from "./visitFunctionBodies.js";
 
 class Reactor extends Visitor {
-  visitExpression(n: Expression): Expression {
-    if (
-      n.type === "FunctionExpression" ||
-      n.type === "ArrowFunctionExpression"
-    ) {
-      const newBody = visitFunctionBodies(
-        n.body.type === "BlockStatement"
-          ? n.body
-          : emitBlockStatement(emitExpressionStatement(n.body))
-      );
-      if (newBody) n.body = newBody;
-    }
+  visitFunctionExpression(n: FunctionExpression): FunctionExpression {
+    const newBody = visitFunctionBodies(n.body);
+    if (newBody) n.body = newBody;
 
+    // don't break the visitor
+    this.visitBlockStatement(n.body);
+    return n;
+  }
+
+  visitFunctionDeclaration(decl: FunctionDeclaration): Declaration {
+    const newBody = visitFunctionBodies(decl.body);
+    if (newBody) decl.body = newBody;
+
+    // don't break the visitor
+    this.visitBlockStatement(decl.body);
+    return decl;
+  }
+
+  visitArrowFunctionExpression(e: ArrowFunctionExpression): Expression {
+    const newBody = visitFunctionBodies(
+      e.body.type === "BlockStatement"
+        ? e.body
+        : emitBlockStatement(emitExpressionStatement(e.body))
+    );
+    if (newBody) e.body = newBody;
+
+    // don't break the visitor
+    if (e.body.type === "BlockStatement") this.visitBlockStatement(e.body);
+    else this.visitExpression(e.body);
+    return e;
+  }
+
+  visitJSXAttributeName(n: JSXAttributeName): JSXAttributeName {
+    if (n.type === "Identifier" && n.value === "className") n.value = "class";
     return n;
   }
 }
