@@ -30,6 +30,7 @@ import type {
   UpdateExpression,
   Span,
   ArrayPattern,
+  ParenthesisExpression,
 } from "@swc/core";
 
 export const blankSpan: Span = { start: 0, end: 0, ctxt: 0 };
@@ -166,14 +167,14 @@ export const emitBinaryExpression = (
 
 export const emitArrowFunctionExpression = (
   params: Pattern[],
-  stmts: Statement[],
+  stmts: Statement[] | Expression,
   async: boolean = false
 ): ArrowFunctionExpression => ({
   type: "ArrowFunctionExpression",
   generator: false,
   async,
   params,
-  body: emitBlockStatement(...stmts),
+  body: Array.isArray(stmts) ? emitBlockStatement(...stmts) : stmts,
   span: blankSpan,
 });
 
@@ -233,5 +234,13 @@ export const emitArrayPattern = (
   elements: elems,
   span: blankSpan,
   // @ts-expect-error - another error in the SWC TS defs
-  optional: false
+  optional: false,
+});
+
+export const emitParenthesisExpression = (
+  expr: Expression
+): ParenthesisExpression => ({
+  type: "ParenthesisExpression",
+  span: blankSpan,
+  expression: expr,
 });
