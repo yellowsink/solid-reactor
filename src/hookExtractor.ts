@@ -8,6 +8,7 @@ import {
   Identifier,
   ComputedPropName,
   Argument,
+  VariableDeclarationKind,
 } from "@swc/core";
 
 interface LeftSideReactor extends Identifier {
@@ -15,7 +16,7 @@ interface LeftSideReactor extends Identifier {
 }
 
 export type ReactHook = {
-  return?: string | { get?: string; set?: string };
+  return?: { get?: string; set?: string; declType: VariableDeclarationKind };
   hookType: string;
   params: Argument[];
 };
@@ -47,51 +48,29 @@ const exprExtractReactHook = (n: Expression): undefined | ReactHook => {
       params: n.arguments,
     };
   }
-
-  if (n.type === "AssignmentExpression") {
-    const hook = exprExtractReactHook(n.right);
-    if (!hook) return;
-
-    if (
-      n.left.type === "ArrayPattern" &&
-      n.left.elements.every((e): e is undefined | Identifier => e === null || e?.type === "Identifier")
-    ) {
-      hook.return = {
-        get: n.left.elements[0]?.value,
-        set: n.left.elements[1]?.value,
-      };
-    } else if (n.left.type === "Identifier") hook.return = n.left.value;
-    else return;
-
-    return hook;
-  }
 };
 
 export const stmtExtractReactHooks = (n: Statement) => {
-  if (n.type === "ExpressionStatement") {
-    const hook = exprExtractReactHook(n.expression);
-    return hook ? [hook] : undefined;
-  }
+  if (n.type === "ExpressionStatement")
+    return exprExtractReactHook(n.expression);
 
   if (n.type === "VariableDeclaration") {
-    const declarations = n.declarations
-      .map((d) => {
-        const hook = d.init && exprExtractReactHook(d.init);
-        if (!hook) return;
-        if (
-          d.id.type === "ArrayPattern" &&
-          d.id.elements.every(
-            (e): e is undefined | Identifier =>
-              e === null || e?.type === "Identifier"
-          )
-        )
-          hook.return = {
-            get: d.id.elements[0]?.value,
-            set: d.id.elements[1]?.value,
-          };
-        return hook;
-      })
-      .filter((d): d is ReactHook => !!d);
-    if (declarations.length !== 0) return declarations;
+    const d = n.declarations[0];
+    const hook = d.init && exprExtractReactHook(d.init);
+    if (!hook) return;
+    if (
+      d.id.type === "ArrayPattern" &&
+      d.id.elements.every(
+        (e): e is undefined | Identifier =>
+          e === null || e?.type === "Identifier"
+      )
+    )
+      hook.return = {
+        get: d.id.elements[0]?.value,
+        set: d.id.elements[1]?.value,
+        declType: n.kind,
+      };
+
+    return hook;
   }
 };

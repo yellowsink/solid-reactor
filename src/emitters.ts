@@ -29,6 +29,7 @@ import type {
   UpdateOperator,
   UpdateExpression,
   Span,
+  ArrayPattern,
 } from "@swc/core";
 
 export const blankSpan: Span = { start: 0, end: 0, ctxt: 0 };
@@ -223,4 +224,14 @@ export const emitUpdateExpression = (
   operator,
   prefix,
   argument,
+});
+
+export const emitArrayPattern = (
+  ...elems: (Pattern | undefined)[]
+): ArrayPattern => ({
+  type: "ArrayPattern",
+  elements: elems,
+  span: blankSpan,
+  // @ts-expect-error - another error in the SWC TS defs
+  optional: false
 });
