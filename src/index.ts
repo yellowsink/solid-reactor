@@ -27,7 +27,7 @@ const transformed = await jsxTransform(
 
 export default () => {
   const [state, setState] = React.useState(0);
-  Reactor.useEffect(() => {});
+  Reactor.useEffect(() => console.log(state));
   let [, rerender] = useReducer(a => ~a, 0);
 
   return (
