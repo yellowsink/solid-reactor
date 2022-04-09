@@ -25,9 +25,6 @@ convert what is not supported in Reactor, and save the proper Solid conversion f
 Do not expect the same performance from Reactor as Solid.
 It will almost certainly beat React by a long shot, but the way Solid does deps makes its reactivity basically unbeatable.
 
-Expect to replace the `className` prop on JSX elements with `class`.
-Without patching over Solid's JSX support or providing our own wrapper, Reactor cannot do this for you.
-
 ## An example Reactor component
 ```js
 // top tip! import reactor as React to make it work neatly with many components that will expect that global to exist
