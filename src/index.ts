@@ -7,7 +7,7 @@ import {
   parseSync,
   transform,
 } from "@swc/core";
-import { isStmtReactHook } from "./hookExtractor.js";
+import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 
 class Reactor extends Visitor {
   visitExpression(n: Expression): Expression {
@@ -36,7 +36,7 @@ class Reactor extends Visitor {
     n: FunctionExpression | ArrowFunctionExpression,
     body: BlockStatement
   ): FunctionExpression | ArrowFunctionExpression {
-    const hookStmts = body.stmts.filter(isStmtReactHook);
+    const hookStmts = body.stmts.map(stmtExtractReactHooks).filter((s): s is ReactHook[] => !!s).flat();
 
     if (hookStmts.length === 0) return n;
 
@@ -52,8 +52,8 @@ const transformed = await transform(
 export default () => {
   const [state, setState] = React.useState(0);
   Reactor.useEffect(() => {});
-  let x;
-  [x] = useReducer(a => ~a, 0);
+  let rerender;
+  [, rerender] = useReducer(a => ~a, 0);
 
   return <div>balls</div>
 }
