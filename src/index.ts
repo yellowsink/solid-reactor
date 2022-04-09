@@ -1,56 +1,33 @@
 import { Visitor } from "@swc/core/Visitor.js";
-import {
-  ArrowFunctionExpression,
-  Declaration,
-  Expression,
-  FunctionDeclaration,
-  FunctionExpression,
-  JSXAttribute,
-  JSXAttributeName,
-  JSXAttributeOrSpread,
-  JSXElement,
-  JSXFragment,
-  JSXOpeningElement,
-} from "@swc/core";
+import { BlockStatement, JSXAttributeName } from "@swc/core";
 import jsxTransform from "./jsxTransform.js";
-import {
-  emitBlockStatement,
-  emitExpressionStatement,
-  emitIdentifier,
-} from "./emitters.js";
-import visitFunctionBodies from "./visitFunctionBodies.js";
+import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
+import emitHook from "./emitHook.js";
+import callify from "./callify.js";
 
 class Reactor extends Visitor {
-  visitFunctionExpression(n: FunctionExpression): FunctionExpression {
-    const newBody = visitFunctionBodies(n.body);
-    if (newBody) n.body = newBody;
+  visitBlockStatement(block: BlockStatement): BlockStatement {
+    const hookStmts = block.stmts
+      .map((s, i) => [i, stmtExtractReactHooks(s)])
+      .filter((s): s is [number, ReactHook] => !!s[1]);
 
-    // don't break the visitor
-    this.visitBlockStatement(n.body);
-    return n;
-  }
+    if (hookStmts.length === 0) return block;
 
-  visitFunctionDeclaration(decl: FunctionDeclaration): Declaration {
-    const newBody = visitFunctionBodies(decl.body);
-    if (newBody) decl.body = newBody;
+    const getters = hookStmts
+      .map(([, hook]) => hook.return?.get)
+      .filter((g): g is string => !!g);
 
-    // don't break the visitor
-    this.visitBlockStatement(decl.body);
-    return decl;
-  }
+    for (const hookStmt of hookStmts) {
+      const newHook = emitHook(hookStmt[1]);
+      if (newHook) block.stmts[hookStmt[0]] = newHook;
+    }
 
-  visitArrowFunctionExpression(e: ArrowFunctionExpression): Expression {
-    const newBody = visitFunctionBodies(
-      e.body.type === "BlockStatement"
-        ? e.body
-        : emitBlockStatement(emitExpressionStatement(e.body))
-    );
-    if (newBody) e.body = newBody;
+    callify(block, getters);
 
-    // don't break the visitor
-    if (e.body.type === "BlockStatement") this.visitBlockStatement(e.body);
-    else this.visitExpression(e.body);
-    return e;
+    // don't break internal visitor routing
+    block.stmts = block.stmts.map(s => this.visitStatement(s));
+
+    return block;
   }
 
   visitJSXAttributeName(n: JSXAttributeName): JSXAttributeName {
