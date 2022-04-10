@@ -2,12 +2,12 @@ lockfileVersion: 5.3
 
 specifiers:
   '@swc/core': ^1.2.165
-  emitkit: ^1.1.1
+  emitkit: ^1.1.2
   typescript: ^4.6.3
 
 dependencies:
   '@swc/core': 1.2.165
-  emitkit: 1.1.1_@swc+core@1.2.165
+  emitkit: 1.1.2_@swc+core@1.2.165
 
 devDependencies:
   typescript: 4.6.3
@@ -138,8 +138,8 @@ packages:
       '@swc/core-win32-x64-msvc': 1.2.165
     dev: false
 
-  /emitkit/1.1.1_@swc+core@1.2.165:
-    resolution: {integrity: sha512-pWJ0/ivh4EZKlJVZataRxl5Jqg5HZI6st9OIinZAiIhZO9pc6XhrCtGgB0oonu0QT5RgTD0QS2htT2q8F9AWJA==}
+  /emitkit/1.1.2_@swc+core@1.2.165:
+    resolution: {integrity: sha512-9BbANUBRn/nzHg7ObdFXNnILlFM53ouAiKFmAvUPwS3EaJM2dYL1gzDfXrpnMcUZei+Ws2fKvwwossCNet0EDA==}
     peerDependencies:
       '@swc/core': ^1.2.165
     dependencies:

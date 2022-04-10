@@ -1,9 +1,8 @@
-import { Visitor } from "@swc/core/Visitor.js";
 import { BlockStatement, JSXAttributeName, Statement } from "@swc/core";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
 import callify from "./callify.js";
-import { jsxTransform } from "emitkit";
+import { AuxVisitor, jsxTransform } from "emitkit";
 
 const extractHookStmts = (stmts: Statement[]) =>
   stmts
@@ -41,11 +40,13 @@ const processHooks = (
   }
 };
 
-class Reactor extends Visitor {
-  visitBlockStatement(block: BlockStatement): BlockStatement {
+class Reactor extends AuxVisitor {
+  auxVisitBlockStatement(
+    block: BlockStatement
+  ): [BlockStatement, boolean] | undefined {
     const hookStmts = extractHookStmts(block.stmts);
 
-    if (hookStmts.length === 0) return block;
+    if (hookStmts.length === 0) return;
 
     const getters = extractGetters(hookStmts);
 
@@ -53,14 +54,9 @@ class Reactor extends Visitor {
 
     processHooks(block.stmts, hookStmts, getters, refs);
 
-    console.log(getters, refs);
-
     block = callify(block, getters);
 
-    // don't break internal visitor routing
-    block.stmts = this.visitStatements(block.stmts);
-
-    return block;
+    return [block, true];
   }
 
   visitJSXAttributeName(n: JSXAttributeName): JSXAttributeName {

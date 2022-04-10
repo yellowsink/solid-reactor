@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@swc/core": "^1.2.165",
-    "emitkit": "^1.1.1"
+    "emitkit": "^1.1.2"
   },
   "devDependencies": {
     "typescript": "^4.6.3"
