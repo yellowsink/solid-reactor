@@ -1,9 +1,9 @@
 import { Visitor } from "@swc/core/Visitor.js";
 import { BlockStatement, JSXAttributeName, Statement } from "@swc/core";
-import jsxTransform from "./jsxTransform.js";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
 import callify from "./callify.js";
+import { jsxTransform } from "emitkit";
 
 const extractHookStmts = (stmts: Statement[]) =>
   stmts
@@ -73,12 +73,5 @@ export default async (code: string) =>
   (
     await jsxTransform(code, {
       plugin: (m) => new Reactor().visitProgram(m),
-      jsc: {
-        parser: {
-          syntax: "ecmascript",
-          jsx: true,
-        },
-        target: "es2022",
-      },
     })
   ).code;

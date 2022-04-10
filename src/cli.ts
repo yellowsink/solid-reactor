@@ -22,4 +22,4 @@ export default () => {
 
 `);
 
-console.log(transformed)
+console.log(transformed);

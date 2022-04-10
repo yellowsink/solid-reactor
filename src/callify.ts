@@ -7,8 +7,7 @@ import {
   Fn,
   Identifier,
 } from "@swc/core";
-import AuxVisitor from "./AuxVisitor.js";
-import { emitCallExpression } from "./emitters.js";
+import { AuxVisitor, emitCallExpression } from "emitkit";
 
 class Callifier extends AuxVisitor {
   callifyList;

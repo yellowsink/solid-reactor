@@ -4,7 +4,6 @@ import { Statement, VariableDeclarationKind } from "@swc/core";
 import {
   emitArrayPattern,
   emitArrowFunctionExpression,
-  emitBlockStatement,
   emitCallExpression,
   emitExpressionStatement,
   emitIdentifier,
@@ -12,8 +11,7 @@ import {
   emitParenthesisExpression,
   emitVariableDeclaration,
   emitVariableDeclarator,
-  emitVoid0,
-} from "./emitters.js";
+} from "emitkit";
 import { ReactHook } from "./hookExtractor.js";
 import idGen from "./idGen.js";
 
