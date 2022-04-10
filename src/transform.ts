@@ -1,38 +1,59 @@
 import { Visitor } from "@swc/core/Visitor.js";
-import { BlockStatement, JSXAttributeName } from "@swc/core";
+import { BlockStatement, JSXAttributeName, Statement } from "@swc/core";
 import jsxTransform from "./jsxTransform.js";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
 import callify from "./callify.js";
 
+const extractHookStmts = (stmts: Statement[]) =>
+  stmts
+    .map((s, i) => [i, stmtExtractReactHooks(s)])
+    .filter((s): s is [number, ReactHook] => !!s[1]);
+
+const extractGetters = (hookStmts: [unknown, ReactHook][]) =>
+  new Set(
+    hookStmts
+      .map(
+        ([, hook]) =>
+          typeof hook.return?.target === "object" && hook.return.target.get
+      )
+      .filter((g): g is string => !!g)
+  );
+
+const processHooks = (
+  stmts: Statement[],
+  hookStmts: [number, ReactHook][],
+  getters: Set<string>,
+  refs: Set<string>
+) => {
+  for (const [hookIdx, hook] of hookStmts) {
+    const maybeNewHook = emitHook(hook);
+    if (!maybeNewHook) continue;
+    const [newHook, newGetters, newRefs] = maybeNewHook;
+
+    stmts.splice(hookIdx, 1, ...newHook);
+
+    for (const g of newGetters) getters.add(g);
+    for (const r of newRefs) refs.add(r);
+
+    for (let i = hookIdx; i < hookStmts.length; i++)
+      hookStmts[i][0] += newHook.length - 1;
+  }
+};
+
 class Reactor extends Visitor {
   visitBlockStatement(block: BlockStatement): BlockStatement {
-    const hookStmts = block.stmts
-      .map((s, i) => [i, stmtExtractReactHooks(s)])
-      .filter((s): s is [number, ReactHook] => !!s[1]);
+    const hookStmts = extractHookStmts(block.stmts);
 
     if (hookStmts.length === 0) return block;
 
-    const getters = new Set(
-      hookStmts
-        .map(([, hook]) => hook.return?.get)
-        .filter((g): g is string => !!g)
-    );
+    const getters = extractGetters(hookStmts);
 
-    hookStmts.forEach((hookStmt, i, arr) => {
-      const maybeNewHook = emitHook(hookStmt[1]);
-      if (!maybeNewHook) return;
-      const [newHook, newGetters] = maybeNewHook;
+    const refs = new Set<string>();
 
-      block.stmts.splice(hookStmt[0], 1, ...newHook);
+    processHooks(block.stmts, hookStmts, getters, refs);
 
-      newGetters.forEach((g) => getters.add(g));
-
-      const toAdd = newHook.length - 1;
-      for (let i = hookStmt[0]; i < arr.length; i++) {
-        arr[i][0] += toAdd;
-      }
-    });
+    console.log(getters, refs);
 
     block = callify(block, getters);
 

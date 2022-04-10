@@ -31,6 +31,12 @@ import type {
   Span,
   ArrayPattern,
   ParenthesisExpression,
+  ObjectExpression,
+  PropertyName,
+  KeyValueProperty,
+  NullLiteral,
+  UnaryOperator,
+  UnaryExpression,
 } from "@swc/core";
 
 export const blankSpan: Span = { start: 0, end: 0, ctxt: 0 };
@@ -243,4 +249,23 @@ export const emitParenthesisExpression = (
   type: "ParenthesisExpression",
   span: blankSpan,
   expression: expr,
+});
+
+export const emitObjectExpression = (
+  ...props: [PropertyName, Expression][]
+): ObjectExpression => ({
+  type: "ObjectExpression",
+  span: blankSpan,
+  properties: props.map((p) => ({
+    type: "KeyValueProperty",
+    key: p[0],
+    value: p[1],
+  })),
+});
+
+export const emitVoid0 = (): UnaryExpression => ({
+  type: "UnaryExpression",
+  span: blankSpan,
+  operator: "void",
+  argument: emitNumericLiteral(0),
 });

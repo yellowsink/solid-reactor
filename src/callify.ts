@@ -7,10 +7,10 @@ import {
   Fn,
   Identifier,
 } from "@swc/core";
-import { Visitor } from "@swc/core/Visitor.js";
+import AuxVisitor from "./AuxVisitor.js";
 import { emitCallExpression } from "./emitters.js";
 
-class Callifier extends Visitor {
+class Callifier extends AuxVisitor {
   callifyList;
 
   removeFromlist = false;
@@ -28,12 +28,10 @@ class Callifier extends Visitor {
 
   // visits all expressions but returns a bool to, when true, leave internal routing intact,
   // hence auxilliary visit expression.
-  auxVisitExpression(n: Expression): [Expression, boolean] {
+  auxVisitExpression(n: Expression): [Expression, boolean] | undefined {
     if (n.type === "Identifier" && this.callifyList.has(n.value))
       // if we recurse straight back into this callexpression we will infini-loop
       return [emitCallExpression(n), false];
-
-    return [n, true];
   }
 
   visitArrowFunctionExpression(e: ArrowFunctionExpression): Expression {
@@ -61,15 +59,6 @@ class Callifier extends Visitor {
     return n;
   }
 }
-
-// lord forgive me for this, but i need to keep the internal visitor routing intact
-const oldExprVisitor = Callifier.prototype.visitExpression;
-
-Callifier.prototype.visitExpression = function (n: Expression) {
-  const [processed, keepRecursing] = this.auxVisitExpression(n);
-
-  return keepRecursing ? oldExprVisitor.call(this, processed) : processed;
-};
 
 export default (node: BlockStatement, callifyList: Set<string> | string[]) => {
   const callifier = new Callifier(callifyList);

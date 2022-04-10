@@ -8,42 +8,59 @@ import {
   emitCallExpression,
   emitExpressionStatement,
   emitIdentifier,
+  emitObjectExpression,
   emitParenthesisExpression,
   emitVariableDeclaration,
   emitVariableDeclarator,
+  emitVoid0,
 } from "./emitters.js";
 import { ReactHook } from "./hookExtractor.js";
 import idGen from "./idGen.js";
 
-interface ReturningReactHook extends ReactHook {
+interface ArrReturningReactHook extends ReactHook {
   return: {
-    get?: string;
-    set?: string;
+    target: { get?: string; set?: string };
     declType: VariableDeclarationKind;
   };
 }
 
-const isReturningReactHook = (hook: ReactHook): hook is ReturningReactHook =>
-  hook.return?.declType !== undefined;
+interface StrReturningReactHook extends ReactHook {
+  return: {
+    target: string;
+    declType: VariableDeclarationKind;
+  };
+}
 
-const emitCreateSignal = (hook: ReturningReactHook) =>
+const isArrReturningReactHook = (
+  hook: ReactHook
+): hook is ArrReturningReactHook => typeof hook.return?.target === "object";
+
+const isStrReturningReactHook = (
+  hook: ReactHook
+): hook is StrReturningReactHook => typeof hook.return?.target === "string";
+
+const emitCreateSignal = (hook: ArrReturningReactHook) =>
   emitVariableDeclaration(
     hook.return.declType,
     emitVariableDeclarator(
       emitArrayPattern(
-        hook.return.get ? emitIdentifier(hook.return.get) : undefined,
-        hook.return.set ? emitIdentifier(hook.return.set) : undefined
+        hook.return.target.get
+          ? emitIdentifier(hook.return.target.get)
+          : undefined,
+        hook.return.target.set
+          ? emitIdentifier(hook.return.target.set)
+          : undefined
       ),
       emitCallExpression(emitIdentifier("createSignal"), ...hook.params)
     )
   );
 
 const emitCreateReducer = (
-  hook: ReturningReactHook
+  hook: ArrReturningReactHook
 ): [Statement[], string[]] => {
   const uniqueSetterId = idGen();
 
-  if (hook.return.get === undefined) hook.return.get = idGen();
+  hook.return.target.get ??= idGen();
 
   const stmts = [
     emitCreateSignal({
@@ -51,25 +68,27 @@ const emitCreateReducer = (
       params: [hook.params[1]],
       return: {
         declType: hook.return.declType,
-        get: hook.return.get,
-        set: uniqueSetterId,
+        target: {
+          get: hook.return.target.get,
+          set: uniqueSetterId,
+        },
       },
     }),
   ];
 
-  if (hook.return.set)
+  if (hook.return.target.set)
     stmts.push(
       emitVariableDeclaration(
         "const",
         emitVariableDeclarator(
-          emitIdentifier(hook.return.set),
+          emitIdentifier(hook.return.target.set),
           emitArrowFunctionExpression(
             [],
             emitCallExpression(
               emitIdentifier(uniqueSetterId),
               emitCallExpression(
                 emitParenthesisExpression(hook.params[0].expression),
-                emitIdentifier(hook.return.get)
+                emitIdentifier(hook.return.target.get)
               )
             )
           )
@@ -77,18 +96,43 @@ const emitCreateReducer = (
       )
     );
 
-  return [stmts, [hook.return.get]];
+  return [stmts, [hook.return.target.get]];
 };
 
-export default (hook: ReactHook): [Statement[], string[]] | undefined => {
+const emitCreateRef = (
+  hook: StrReturningReactHook
+): [Statement[], [], string[]] => [
+  [
+    emitVariableDeclaration(
+      hook.return.declType,
+      emitVariableDeclarator(
+        emitIdentifier(hook.return.target),
+        hook.params[0]
+          ? emitObjectExpression([
+              emitIdentifier("current"),
+              hook.params[0]?.expression,
+            ])
+          : emitObjectExpression()
+      )
+    ),
+  ],
+  [],
+  [hook.return.target],
+];
+
+export default (
+  hook: ReactHook
+): [Statement[], string[], string[]] | undefined => {
   switch (hook.hookType) {
     case "useState":
-      return isReturningReactHook(hook)
-        ? [[emitCreateSignal(hook)], []]
+      return isArrReturningReactHook(hook)
+        ? [[emitCreateSignal(hook)], [], []]
         : undefined;
 
     case "useReducer":
-      return isReturningReactHook(hook) ? emitCreateReducer(hook) : undefined;
+      return isArrReturningReactHook(hook)
+        ? [...emitCreateReducer(hook), []]
+        : undefined;
 
     case "useEffect":
       return [
@@ -98,7 +142,11 @@ export default (hook: ReactHook): [Statement[], string[]] | undefined => {
           ),
         ],
         [],
+        [],
       ];
+
+    case "useRef":
+      return isStrReturningReactHook(hook) ? emitCreateRef(hook) : undefined;
 
     default:
       return;

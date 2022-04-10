@@ -7,6 +7,8 @@ export default () => {
   let [, rerender] = useReducer(a => ~a, 0);
   Reactor.useEffect(() => console.log(state));
 
+  const myRef = useRef();
+
   return (
     <>
       <button onClick={() => setState(state * 2)}/>

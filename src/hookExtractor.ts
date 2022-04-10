@@ -16,7 +16,10 @@ interface LeftSideReactor extends Identifier {
 }
 
 export type ReactHook = {
-  return?: { get?: string; set?: string; declType: VariableDeclarationKind };
+  return?: {
+    target: { get?: string; set?: string } | string;
+    declType: VariableDeclarationKind;
+  };
   hookType: string;
   params: Argument[];
 };
@@ -58,7 +61,13 @@ export const stmtExtractReactHooks = (n: Statement) => {
     const d = n.declarations[0];
     const hook = d.init && exprExtractReactHook(d.init);
     if (!hook) return;
-    if (
+
+    if (d.id.type === "Identifier")
+      hook.return = {
+        target: d.id.value,
+        declType: n.kind,
+      };
+    else if (
       d.id.type === "ArrayPattern" &&
       d.id.elements.every(
         (e): e is undefined | Identifier =>
@@ -66,8 +75,10 @@ export const stmtExtractReactHooks = (n: Statement) => {
       )
     )
       hook.return = {
-        get: d.id.elements[0]?.value,
-        set: d.id.elements[1]?.value,
+        target: {
+          get: d.id.elements[0]?.value,
+          set: d.id.elements[1]?.value,
+        },
         declType: n.kind,
       };
 
