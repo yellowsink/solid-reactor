@@ -1,4 +1,4 @@
-// let the games begin! - context aware (ish) recursive transform to make value accesses a call
+// transform to make value accesses a call
 
 import {
   ArrowFunctionExpression,

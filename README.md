@@ -8,9 +8,8 @@ Converts the following hooks to Solid equivalents:
  - `useState` -> `createSignal`
  - `useEffect` -> `createEffect`
  - `useReducer` -> `createSignal` + a function
-
-## TODO
- - compile `useRef` to a simple variable
+ - `useRef` -> `{ current: <value> }` + a variable
+   * convert (useRef-returned only) refs in `ref={myRef}` to `ref={myRef.current}`.
 
 ## Example
 ```js

@@ -3,6 +3,7 @@ import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
 import callify from "./callify.js";
 import { AuxVisitor, jsxTransform } from "emitkit";
+import currentify from "./currentify.js";
 
 const extractHookStmts = (stmts: Statement[]) =>
   stmts
@@ -54,7 +55,11 @@ class Reactor extends AuxVisitor {
 
     processHooks(block.stmts, hookStmts, getters, refs);
 
+    // call applicable getters (from createSignal etc)
     block = callify(block, getters);
+
+    // add .current to applicable refs
+    block = currentify(block, refs);
 
     return [block, true];
   }

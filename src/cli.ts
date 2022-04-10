@@ -14,7 +14,7 @@ export default () => {
       <button onClick={() => setState(state * 2)}/>
       {state}
       <div>
-        <span className={state}/>
+        <span ref={myRef}/>
       </div>
     </>
   );
