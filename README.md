@@ -15,21 +15,21 @@ Converts the following hooks to Solid equivalents:
 ```js
 export default () => {
   const [state, setState] = React.useState(0);
-  let [, rerender] = useReducer(a => ~a, 0);
+  let [, rerender] = useReducer((a) => ~a, 0);
   Reactor.useEffect(() => console.log(state));
 
   const myRef = useRef();
 
   return (
     <>
-      <button onClick={() => setState(state * 2)}/>
+      <button onClick={() => setState(state * 2)} />
       {state}
       <div>
-        <span className={state}/>
+        <span ref={myRef} />
       </div>
     </>
   );
-}
+};
 ```
 
 ```js
@@ -46,7 +46,7 @@ export default () => {
       <button onClick={() => setState(state() * 2)} />
       {state()}
       <div>
-        <span class={state()} />
+        <span ref={myRef.current} />
       </div>
     </>
   );
