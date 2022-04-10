@@ -13,14 +13,20 @@ class Reactor extends Visitor {
 
     if (hookStmts.length === 0) return block;
 
-    const getters = hookStmts
-      .map(([, hook]) => hook.return?.get)
-      .filter((g): g is string => !!g);
+    const getters = new Set(
+      hookStmts
+        .map(([, hook]) => hook.return?.get)
+        .filter((g): g is string => !!g)
+    );
 
     hookStmts.forEach((hookStmt, i, arr) => {
-      const newHook = emitHook(hookStmt[1]);
-      if (!newHook) return;
+      const maybeNewHook = emitHook(hookStmt[1]);
+      if (!maybeNewHook) return;
+      const [newHook, newGetters] = maybeNewHook;
+      
       block.stmts.splice(hookStmt[0], 1, ...newHook);
+
+      newGetters.forEach(g => getters.add(g));
 
       const toAdd = newHook.length - 1;
       for (let i = hookStmt[0]; i < arr.length; i++) {

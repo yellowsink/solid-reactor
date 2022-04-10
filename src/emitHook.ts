@@ -38,8 +38,12 @@ const emitCreateSignal = (hook: ReturningReactHook) =>
     )
   );
 
-const emitCreateReducer = (hook: ReturningReactHook) => {
-  const id = idGen();
+const emitCreateReducer = (
+  hook: ReturningReactHook
+): [Statement[], string[]] => {
+  const uniqueSetterId = idGen();
+
+  if (hook.return.get === undefined) hook.return.get = idGen();
 
   const stmts = [
     emitCreateSignal({
@@ -48,7 +52,7 @@ const emitCreateReducer = (hook: ReturningReactHook) => {
       return: {
         declType: hook.return.declType,
         get: hook.return.get,
-        set: id,
+        set: uniqueSetterId,
       },
     }),
   ];
@@ -62,30 +66,38 @@ const emitCreateReducer = (hook: ReturningReactHook) => {
           emitArrowFunctionExpression(
             [],
             emitCallExpression(
-              emitParenthesisExpression(hook.params[0].expression),
-              emitIdentifier(id)
+              emitIdentifier(uniqueSetterId),
+              emitCallExpression(
+                emitParenthesisExpression(hook.params[0].expression),
+                emitIdentifier(hook.return.get)
+              )
             )
           )
         )
       )
     );
 
-  return stmts;
+  return [stmts, [hook.return.get]];
 };
 
-export default (hook: ReactHook): Statement[] | undefined => {
+export default (hook: ReactHook): [Statement[], string[]] | undefined => {
   switch (hook.hookType) {
     case "useState":
-      return isReturningReactHook(hook) ? [emitCreateSignal(hook)] : undefined;
+      return isReturningReactHook(hook)
+        ? [[emitCreateSignal(hook)], []]
+        : undefined;
 
     case "useReducer":
       return isReturningReactHook(hook) ? emitCreateReducer(hook) : undefined;
 
     case "useEffect":
       return [
-        emitExpressionStatement(
-          emitCallExpression(emitIdentifier("createEffect"), hook.params[0])
-        ),
+        [
+          emitExpressionStatement(
+            emitCallExpression(emitIdentifier("createEffect"), hook.params[0])
+          ),
+        ],
+        [],
       ];
 
     default:

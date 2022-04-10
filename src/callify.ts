@@ -15,9 +15,10 @@ class Callifier extends Visitor {
 
   removeFromlist = false;
 
-  constructor(callifyList: string[]) {
+  constructor(callifyList: Set<string> | string[]) {
     super();
-    this.callifyList = new Set(callifyList);
+    this.callifyList =
+      callifyList instanceof Set ? callifyList : new Set(callifyList);
   }
 
   visitIdentifier(n: Identifier): Identifier {
@@ -70,7 +71,7 @@ Callifier.prototype.visitExpression = function (n: Expression) {
   return keepRecursing ? oldExprVisitor.call(this, processed) : processed;
 };
 
-export default (node: BlockStatement, callifyList: string[]) => {
+export default (node: BlockStatement, callifyList: Set<string> | string[]) => {
   const callifier = new Callifier(callifyList);
 
   return callifier.visitBlockStatement(node);

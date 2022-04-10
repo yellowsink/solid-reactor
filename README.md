@@ -34,8 +34,9 @@ export default () => {
 ```js
 export default () => {
   const [state, setState] = createSignal(0);
-  let [, $$__REACTOR_UNIQUE_VAR_0] = createSignal(0);
-  const rerender = () => ((a) => ~a)($$__REACTOR_UNIQUE_VAR_0);
+  let [$$__REACTOR_UNIQUE_VAR_1, $$__REACTOR_UNIQUE_VAR_0] = createSignal(0);
+  const rerender = () =>
+    $$__REACTOR_UNIQUE_VAR_0(((a) => ~a)($$__REACTOR_UNIQUE_VAR_1));
   createEffect(() => console.log(state()));
 
   return (
