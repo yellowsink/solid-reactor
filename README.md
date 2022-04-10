@@ -1,7 +1,13 @@
-# Reactor
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/yellowsink/solid-reactor/master/reactor.svg" width="100" />
+  
+  Reactor
+</h1>
 
 [![SWC](https://img.shields.io/badge/transforms%20by-SWC-orange)](https://swc.rs)
 [![EmitKit](https://img.shields.io/badge/enhanced%20with-EmitKit-blueviolet)](https://github.com/yellowsink/emitkit)
+
+---
 
 A compiler to ease the move from React to SolidJS.
 
