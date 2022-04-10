@@ -1,0 +1,23 @@
+import transform from "./transform.js";
+
+const transformed = await transform(`
+
+export default () => {
+  const [state, setState] = React.useState(0);
+  let [, rerender] = useReducer(a => ~a, 0);
+  Reactor.useEffect(() => console.log(state));
+
+  return (
+    <>
+      <button onClick={() => setState(state * 2)}/>
+      {state}
+      <div>
+        <span className={state}/>
+      </div>
+    </>
+  );
+}
+
+`);
+
+console.log(transformed)

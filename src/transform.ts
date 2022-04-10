@@ -23,10 +23,10 @@ class Reactor extends Visitor {
       const maybeNewHook = emitHook(hookStmt[1]);
       if (!maybeNewHook) return;
       const [newHook, newGetters] = maybeNewHook;
-      
+
       block.stmts.splice(hookStmt[0], 1, ...newHook);
 
-      newGetters.forEach(g => getters.add(g));
+      newGetters.forEach((g) => getters.add(g));
 
       const toAdd = newHook.length - 1;
       for (let i = hookStmt[0]; i < arr.length; i++) {
@@ -48,36 +48,16 @@ class Reactor extends Visitor {
   }
 }
 
-const transformed = await jsxTransform(
-  `
-
-export default () => {
-  const [state, setState] = React.useState(0);
-  let [, rerender] = useReducer(a => ~a, 0);
-  Reactor.useEffect(() => console.log(state));
-
-  return (
-    <>
-      <button onClick={() => setState(state * 2)}/>
-      {state}
-      <div>
-        <span className={state}/>
-      </div>
-    </>
-  );
-}
-
-`,
-  {
-    plugin: (m) => new Reactor().visitProgram(m),
-    jsc: {
-      parser: {
-        syntax: "ecmascript",
-        jsx: true,
+export default async (code: string) =>
+  (
+    await jsxTransform(code, {
+      plugin: (m) => new Reactor().visitProgram(m),
+      jsc: {
+        parser: {
+          syntax: "ecmascript",
+          jsx: true,
+        },
+        target: "es2022",
       },
-      target: "es2022",
-    },
-  }
-);
-
-console.log(transformed.code);
+    })
+  ).code;

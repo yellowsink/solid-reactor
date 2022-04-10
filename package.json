@@ -2,14 +2,14 @@
   "name": "solid-reactor",
   "version": "1.0.0",
   "description": "A compiler from react to solid",
-  "main": "dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/trasnform.js",
+  "types": "./dist/transform.d.ts",
   "devDependencies": {
     "typescript": "^4.6.3"
   },
   "scripts": {
     "prepublish": "tsc",
-    "start": "tsc && node dist/index.js"
+    "start": "tsc && node dist/cli.js"
   },
   "author": "Yellowsink",
   "license": "BSD-3-Clause",
