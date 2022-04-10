@@ -22,10 +22,10 @@ class Reactor extends Visitor {
       if (newHook) block.stmts[hookStmt[0]] = newHook;
     }
 
-    callify(block, getters);
+    block = callify(block, getters);
 
     // don't break internal visitor routing
-    block.stmts = block.stmts.map(s => this.visitStatement(s));
+    block.stmts = this.visitStatements(block.stmts);
 
     return block;
   }

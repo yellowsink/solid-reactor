@@ -1,134 +1,77 @@
 // let the games begin! - context aware (ish) recursive transform to make value accesses a call
 
 import {
+  ArrowFunctionExpression,
+  BlockStatement,
   Expression,
+  Fn,
   Identifier,
-  JSXAttributeOrSpread,
-  JSXExpressionContainer,
-  JSXOpeningElement,
-  JSXSpreadChild,
-  Statement,
 } from "@swc/core";
+import { Visitor } from "@swc/core/Visitor.js";
 import { emitCallExpression } from "./emitters.js";
 
-const callify =
-  (callifyList: string[]) =>
-  (
-    node: Exclude<
-      | Expression
-      | Statement
-      | JSXExpressionContainer
-      | JSXSpreadChild
-      | JSXAttributeOrSpread
-      | JSXOpeningElement,
-      Identifier
-    >
-  ) => {
-    const currentCallify = callify(callifyList);
+class Callifier extends Visitor {
+  callifyList;
 
-    const isCallifiableIdentifier = (ident: Expression): ident is Identifier =>
-      ident.type === "Identifier" && callifyList.includes(ident.value);
+  removeFromlist = false;
 
-    switch (node.type) {
-      case "BlockStatement":
-        node.stmts.forEach(currentCallify);
-        return;
-      case "ExpressionStatement":
-      case "JSXExpressionContainer":
-      case "JSXSpreadChild":
-      case "ParenthesisExpression":
-        if (isCallifiableIdentifier(node.expression))
-          node.expression = emitCallExpression(node.expression);
-        else currentCallify(node.expression);
-        return;
-      case "ReturnStatement":
-        if (isCallifiableIdentifier(node.argument))
-          node.argument = emitCallExpression(node.argument);
-        else currentCallify(node.argument);
-        return;
+  constructor(callifyList: string[]) {
+    super();
+    this.callifyList = new Set(callifyList);
+  }
 
-      case "JSXFragment":
-        node.children.forEach(currentCallify);
-        return;
+  visitIdentifier(n: Identifier): Identifier {
+    if (this.removeFromlist) this.callifyList.delete(n.value);
+    return n;
+  }
 
-      case "JSXAttribute":
-        if (node.value) currentCallify(node.value);
-        return;
+  // visits all expressions but returns a bool to, when true, leave internal routing intact,
+  // hence auxilliary visit expression.
+  auxVisitExpression(n: Expression): [Expression, boolean] {
+    if (n.type === "Identifier" && this.callifyList.has(n.value))
+      // if we recurse straight back into this callexpression we will infini-loop
+      return [emitCallExpression(n), false];
 
-      case "JSXElement":
-        currentCallify(node.opening);
-        node.children.forEach(currentCallify);
-        return;
+    return [n, true];
+  }
 
-      case "JSXOpeningElement":
-        node.attributes?.forEach(currentCallify);
-        return;
+  visitArrowFunctionExpression(e: ArrowFunctionExpression): Expression {
+    // any param names will shadow existing values
+    this.removeFromlist = true;
+    e.params = this.visitPatterns(e.params);
+    this.removeFromlist = false;
 
-      case "SpreadElement":
-        if (isCallifiableIdentifier(node.arguments))
-          node.arguments = emitCallExpression(node.arguments);
-        else currentCallify(node.arguments);
-        return;
+    e.body =
+      e.body.type === "BlockStatement"
+        ? this.visitBlockStatement(e.body)
+        : this.visitExpression(e.body);
 
-      case "JSXElement":
-        node.opening.attributes?.forEach(currentCallify);
-        return;
+    return e;
+  }
 
-      case "BinaryExpression":
-        if (isCallifiableIdentifier(node.left))
-          node.left = emitCallExpression(node.left);
-        else currentCallify(node.left);
-        if (isCallifiableIdentifier(node.right))
-          node.right = emitCallExpression(node.right);
-        else currentCallify(node.right);
-        return;
+  visitFunction<T extends Fn>(n: T): T {
+    // any param names will shadow existing values
+    this.removeFromlist = true;
+    n.params = this.visitParameters(n.params);
+    this.removeFromlist = false;
 
-      case "CallExpression":
-        node.arguments.forEach((a) => {
-          if (isCallifiableIdentifier(a.expression))
-            a.expression = emitCallExpression(a.expression);
-          else currentCallify(a.expression);
-        });
-        return;
+    n.body = this.visitBlockStatement(n.body);
 
-      case "VariableDeclaration":
-        // shadows previous decls, or fails at runtime due to re-declaration
-        // the first of these scenarios requires ignoring those values from now on
-        // the second scenario, it really doesn't matter either way!
-        const vdNewCallifyList = callifyList.filter(
-          (n) =>
-            !node.declarations.some(
-              (d) => d.id.type === "Identifier" && d.id.value === n
-            )
-        );
-        node.declarations.forEach((d) => {
-          if (!d.init) return;
-          if (isCallifiableIdentifier(d.init))
-            d.init = emitCallExpression(d.init);
-          else callify(vdNewCallifyList)(d.init);
-        });
-        return;
+    return n;
+  }
+}
 
-      case "ArrowFunctionExpression":
-      case "FunctionExpression":
-      case "FunctionDeclaration":
-        // shadows
-        const afNewCallifyList = callifyList.filter(
-          (n) =>
-            !node.params.some((p) => p.type === "Identifier" && p.value === n)
-        );
-        if (
-          node.body.type !== "BlockStatement" &&
-          isCallifiableIdentifier(node.body)
-        )
-          node.body = emitCallExpression(node.body);
-        else callify(afNewCallifyList)(node.body);
-        return;
+// lord forgive me for this, but i need to keep the internal visitor routing intact
+const oldExprVisitor = Callifier.prototype.visitExpression;
 
-      default:
-        return;
-    }
-  };
+Callifier.prototype.visitExpression = function (n: Expression) {
+  const [processed, keepRecursing] = this.auxVisitExpression(n);
 
-export default (node: Expression | Statement, callifyList: string[]) =>
-  node.type !== "Identifier" && callify(callifyList)(node);
+  return keepRecursing ? oldExprVisitor.call(this, processed) : processed;
+};
+
+export default (node: BlockStatement, callifyList: string[]) => {
+  const callifier = new Callifier(callifyList);
+
+  return callifier.visitBlockStatement(node);
+};
