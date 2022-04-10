@@ -2,7 +2,7 @@
   "name": "solid-reactor",
   "version": "1.0.0",
   "description": "A compiler from react to solid",
-  "main": "dist/trasnform.js",
+  "main": "dist/transform.js",
   "types": "./dist/transform.d.ts",
   "devDependencies": {
     "typescript": "^4.6.3"
