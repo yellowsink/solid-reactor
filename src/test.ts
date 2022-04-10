@@ -11,9 +11,9 @@ export default () => {
 
   return (
     <>
-      <button onClick={() => setState(state * 2)} />
+      <button onClick={() => setState(state * 2)} style={\`color: red\`} />
       {state}
-      <div>
+      <div style={{ marginRight: "5rem" }}>
         <span ref={myRef} />
       </div>
     </>

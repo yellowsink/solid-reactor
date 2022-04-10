@@ -1,9 +1,10 @@
 import { BlockStatement, JSXAttributeName, Statement } from "@swc/core";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
-import callify from "./callify.js";
 import { AuxVisitor, jsxTransform } from "emitkit";
-import currentify from "./currentify.js";
+import callify from "./transforms/callify.js";
+import currentify from "./transforms/currentify.js";
+import convertStyles from "./transforms/convertStyles.js";
 
 const extractHookStmts = (stmts: Statement[]) =>
   stmts
@@ -61,11 +62,24 @@ class Reactor extends AuxVisitor {
     // add .current to applicable refs
     block = currentify(block, refs);
 
+    // camelCase styles to skewer-case styles
+    block = convertStyles(block);
+
     return [block, true];
   }
 
   visitJSXAttributeName(n: JSXAttributeName): JSXAttributeName {
-    if (n.type === "Identifier" && n.value === "className") n.value = "class";
+    if (n.type === "Identifier")
+      switch (n.value) {
+        case "onChange":
+          n.value = "onInput";
+          break;
+
+        case "className":
+          n.value = "class";
+          break;
+      }
+
     return n;
   }
 }
