@@ -1,5 +1,8 @@
 # Reactor
 
+[![SWC](https://img.shields.io/badge/transforms%20by-SWC-orange)](https://swc.rs)
+[![EmitKit](https://img.shields.io/badge/enhanced%20with-EmitKit-blueviolet)](https://github.com/yellowsink/emitkit)
+
 A compiler to ease the move from React to SolidJS.
 
 ## Features

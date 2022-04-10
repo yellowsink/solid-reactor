@@ -6,10 +6,11 @@
   "types": "./dist/transform.d.ts",
   "author": "Yellowsink",
   "license": "BSD-3-Clause",
+  "bin": "./dist/cli.js",
   "type": "module",
   "scripts": {
     "prepublish": "tsc",
-    "start": "tsc && node dist/cli.js"
+    "test": "tsc && node dist/test.js"
   },
   "dependencies": {
     "@swc/core": "^1.2.165",

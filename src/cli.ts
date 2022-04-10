@@ -1,25 +1,10 @@
+import { readFile, writeFile } from "fs/promises";
 import transform from "./transform.js";
 
-const transformed = await transform(`
+const [, , inPath, outPath] = process.argv;
 
-export default () => {
-  const [state, setState] = React.useState(0);
-  let [, rerender] = useReducer((a) => ~a, 0);
-  Reactor.useEffect(() => console.log(state));
+const file = await readFile(inPath);
 
-  const myRef = useRef();
+const tranformed = await transform(file.toString());
 
-  return (
-    <>
-      <button onClick={() => setState(state * 2)} />
-      {state}
-      <div>
-        <span ref={myRef} />
-      </div>
-    </>
-  );
-};
-
-`);
-
-console.log(transformed);
+await writeFile(outPath, tranformed);
