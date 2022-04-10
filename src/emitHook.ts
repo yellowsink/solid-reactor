@@ -41,7 +41,7 @@ const emitCreateSignal = (hook: ReturningReactHook) =>
 const emitCreateReducer = (hook: ReturningReactHook) => {
   const id = idGen();
 
-  return emitBlockStatement(
+  const stmts = [
     emitCreateSignal({
       hookType: "useState",
       params: [hook.params[1]],
@@ -51,38 +51,42 @@ const emitCreateReducer = (hook: ReturningReactHook) => {
         set: id,
       },
     }),
-    ...(hook.return.set
-      ? [
-          emitVariableDeclaration(
-            "const",
-            emitVariableDeclarator(
-              emitIdentifier(hook.return.set),
-              emitArrowFunctionExpression(
-                [],
-                emitCallExpression(
-                  emitParenthesisExpression(hook.params[0].expression),
-                  emitIdentifier(id)
-                )
-              )
+  ];
+
+  if (hook.return.set)
+    stmts.push(
+      emitVariableDeclaration(
+        "const",
+        emitVariableDeclarator(
+          emitIdentifier(hook.return.set),
+          emitArrowFunctionExpression(
+            [],
+            emitCallExpression(
+              emitParenthesisExpression(hook.params[0].expression),
+              emitIdentifier(id)
             )
-          ),
-        ]
-      : [])
-  );
+          )
+        )
+      )
+    );
+
+  return stmts;
 };
 
-export default (hook: ReactHook): Statement | undefined => {
+export default (hook: ReactHook): Statement[] | undefined => {
   switch (hook.hookType) {
     case "useState":
-      return isReturningReactHook(hook) ? emitCreateSignal(hook) : undefined;
+      return isReturningReactHook(hook) ? [emitCreateSignal(hook)] : undefined;
 
     case "useReducer":
       return isReturningReactHook(hook) ? emitCreateReducer(hook) : undefined;
 
     case "useEffect":
-      return emitExpressionStatement(
-        emitCallExpression(emitIdentifier("createEffect"), hook.params[0])
-      );
+      return [
+        emitExpressionStatement(
+          emitCallExpression(emitIdentifier("createEffect"), hook.params[0])
+        ),
+      ];
 
     default:
       return;

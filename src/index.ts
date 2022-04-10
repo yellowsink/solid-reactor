@@ -17,10 +17,16 @@ class Reactor extends Visitor {
       .map(([, hook]) => hook.return?.get)
       .filter((g): g is string => !!g);
 
-    for (const hookStmt of hookStmts) {
+    hookStmts.forEach((hookStmt, i, arr) => {
       const newHook = emitHook(hookStmt[1]);
-      if (newHook) block.stmts[hookStmt[0]] = newHook;
-    }
+      if (!newHook) return;
+      block.stmts.splice(hookStmt[0], 1, ...newHook);
+
+      const toAdd = newHook.length - 1;
+      for (let i = hookStmt[0]; i < arr.length; i++) {
+        arr[i][0] += toAdd;
+      }
+    });
 
     block = callify(block, getters);
 
@@ -41,8 +47,8 @@ const transformed = await jsxTransform(
 
 export default () => {
   const [state, setState] = React.useState(0);
-  Reactor.useEffect(() => console.log(state));
   let [, rerender] = useReducer(a => ~a, 0);
+  Reactor.useEffect(() => console.log(state));
 
   return (
     <>
