@@ -42,7 +42,7 @@ const processHooks = (
   }
 };
 
-class Reactor extends AuxVisitor {
+export class Reactor extends AuxVisitor {
   auxVisitBlockStatement(
     block: BlockStatement
   ): [BlockStatement, boolean] | undefined {
