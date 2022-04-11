@@ -16,6 +16,7 @@ A compiler to ease the move from React to SolidJS.
  - Converts the following hooks to Solid equivalents:
    * `useState` -> `createSignal`
    * `useEffect` -> `createEffect`
+     - attempting to recreate the "run on every rerender" behaviour
    * `useReducer` -> `createSignal` + a function
    * `useRef` -> `{ current: <value> }` + a variable
      - convert (useRef-returned only) refs in `ref={myRef}` to `ref={myRef.current}`.

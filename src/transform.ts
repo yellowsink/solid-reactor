@@ -28,7 +28,7 @@ const processHooks = (
   refs: Set<string>
 ) => {
   for (const [hookIdx, hook] of hookStmts) {
-    const maybeNewHook = emitHook(hook);
+    const maybeNewHook = emitHook(hook, Array.from(getters.keys()));
     if (!maybeNewHook) continue;
     const [newHook, newGetters, newRefs] = maybeNewHook;
 

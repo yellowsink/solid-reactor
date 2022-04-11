@@ -3,6 +3,7 @@
 import {
   ArrowFunctionExpression,
   BlockStatement,
+  CallExpression,
   Expression,
   Fn,
   Identifier,
@@ -54,6 +55,16 @@ class Callifier extends AuxVisitor {
     this.removeFromlist = false;
 
     n.body = this.visitBlockStatement(n.body);
+
+    return n;
+  }
+
+  visitCallExpression(n: CallExpression): Expression {
+    // dont callify params to on()! (for createEffect etc.)
+    if (n.callee.type !== "Identifier" || n.callee.value !== "on")
+      n.arguments = this.visitArguments(n.arguments);
+    else if (n.arguments.length >= 2)
+      n.arguments[1] = this.visitArgument(n.arguments[1]);
 
     return n;
   }

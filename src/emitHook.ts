@@ -1,7 +1,14 @@
 // emits a sensible set of code from a ReactHook
 
-import { Statement, VariableDeclarationKind } from "@swc/core";
 import {
+  Argument,
+  CallExpression,
+  Identifier,
+  Statement,
+  VariableDeclarationKind,
+} from "@swc/core";
+import {
+  emitArrayExpression,
   emitArrayPattern,
   emitArrowFunctionExpression,
   emitCallExpression,
@@ -118,8 +125,32 @@ const emitCreateRef = (
   [hook.return.target],
 ];
 
+const emitCreateEffect = (
+  params: Argument[],
+  getters: string[]
+): CallExpression => {
+  if (
+    params[1]?.expression.type === "ArrayExpression" &&
+    params[1].expression.elements.every(
+      (p): p is { expression: Identifier } =>
+        p?.expression.type === "Identifier"
+    )
+  )
+    getters = params[1].expression.elements.map((e) => e.expression.value);
+
+  return emitCallExpression(
+    emitIdentifier("createEffect"),
+    emitCallExpression(
+      emitIdentifier("on"),
+      emitArrayExpression(...getters.map(emitIdentifier)),
+      params[0].expression
+    )
+  );
+};
+
 export default (
-  hook: ReactHook
+  hook: ReactHook,
+  getters: string[]
 ): [Statement[], string[], string[]] | undefined => {
   switch (hook.hookType) {
     case "useState":
@@ -133,15 +164,13 @@ export default (
         : undefined;
 
     case "useEffect":
-      return [
-        [
-          emitExpressionStatement(
-            emitCallExpression(emitIdentifier("createEffect"), hook.params[0])
-          ),
-        ],
-        [],
-        [],
-      ];
+      return hook.params.length > 0
+        ? [
+            [emitExpressionStatement(emitCreateEffect(hook.params, getters))],
+            [],
+            [],
+          ]
+        : undefined;
 
     case "useRef":
       return isStrReturningReactHook(hook) ? emitCreateRef(hook) : undefined;

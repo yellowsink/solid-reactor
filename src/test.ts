@@ -26,4 +26,4 @@ export default () => {
   { plugin }
 );
 
-console.log(transformed);
+console.log(transformed.code);
