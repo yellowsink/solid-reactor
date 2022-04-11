@@ -1,13 +1,24 @@
 {
   "name": "solid-reactor",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A compiler from react to solid",
+  "info": "This compiler can convert most common parts of react components faithfully to solidjs components, and should just work with little tweaking",
   "main": "dist/transform.js",
   "module": "dist/transform.js",
   "types": "./dist/transform.d.ts",
+  "bin": "./dist/cli.js",
+  "contributors": [
+    {
+      "name": "Cain Atkinson (yellowsink)",
+      "email": "yellowsink@riseup.net",
+      "url": "https://git.io/ysink"
+    }
+  ],
+  "homepage": "https://github.com/yellowsink/solid-reactor",
+  "//": "best_ecosystem tag is for solidhack submission!!!",
+  "keywords": ["solid", "react", "compiler", "solidhack", "best_ecosystem"],
   "author": "Yellowsink",
   "license": "BSD-3-Clause",
-  "bin": "./dist/cli.js",
   "type": "module",
   "scripts": {
     "prepublish": "tsc",
