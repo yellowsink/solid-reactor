@@ -1,6 +1,6 @@
 {
   "name": "solid-reactor",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A compiler from react to solid",
   "main": "dist/transform.js",
   "module": "dist/transform.js",
