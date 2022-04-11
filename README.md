@@ -9,6 +9,8 @@
 
 ---
 
+[CLICK HERE FOR SOLIDHACK SUBMISSION DEMO VIDEO](https://youtu.be/Yt-_b3h0SjE)
+
 A compiler to ease the move from React to SolidJS.
 
 ## Features
