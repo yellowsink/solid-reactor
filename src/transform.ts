@@ -1,7 +1,7 @@
-import { BlockStatement, JSXAttributeName, Statement } from "@swc/core";
+import { BlockStatement, JSXAttributeName, Program, Statement } from "@swc/core";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
-import { AuxVisitor, jsxTransform } from "emitkit";
+import { AuxVisitor } from "emitkit";
 import callify from "./transforms/callify.js";
 import currentify from "./transforms/currentify.js";
 import convertStyles from "./transforms/convertStyles.js";
@@ -84,9 +84,5 @@ export class Reactor extends AuxVisitor {
   }
 }
 
-export default async (code: string) =>
-  (
-    await jsxTransform(code, {
-      plugin: (m) => new Reactor().visitProgram(m),
-    })
-  ).code;
+
+export default (m: Program) => new Reactor().visitProgram(m);

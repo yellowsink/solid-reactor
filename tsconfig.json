@@ -1,11 +1,11 @@
 {
-    "include": ["src/**/*.ts"],
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
-        "moduleResolution": "Node",
-        "strict": true,
-        "declaration": true,
-        "outDir": "dist"
-    }
+  "include": ["src/**/*.ts"],
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist"
+  }
 }

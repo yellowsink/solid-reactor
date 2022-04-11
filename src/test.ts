@@ -1,6 +1,8 @@
-import transform from "./transform.js";
+import { jsxTransform } from "emitkit";
+import plugin from "./transform.js";
 
-const transformed = await transform(`
+const transformed = await jsxTransform(
+  `
 
 export default () => {
   const [state, setState] = React.useState(0);
@@ -20,6 +22,8 @@ export default () => {
   );
 };
 
-`);
+`,
+  { plugin }
+);
 
 console.log(transformed);
