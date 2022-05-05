@@ -1,7 +1,8 @@
 import { jsxTransform } from "emitkit";
 import plugin from "./transform.js";
+import * as swc from "@swc/core";
 
-const transformed = await jsxTransform(
+const transformed = jsxTransform(swc)(
   `
 
 export default () => {
