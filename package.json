@@ -1,6 +1,6 @@
 {
   "name": "solid-reactor",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A compiler from react to solid",
   "info": "This compiler can convert most common parts of react components faithfully to solidjs components, and should just work with little tweaking",
   "main": "dist/transform.js",
