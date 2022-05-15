@@ -5,10 +5,10 @@ import * as swc from "@swc/core";
 const transformed = jsxTransform(swc)(
   `
 
-export default () => {
+export default ({a, b}) => {
   const [state, setState] = React.useState(0);
   let [, rerender] = useReducer((a) => ~a, 0);
-  Reactor.useEffect(() => console.log(state));
+  Reactor.useEffect((b) => console.log(state, b));
 
   const myRef = useRef();
 
@@ -18,6 +18,7 @@ export default () => {
       {state}
       <div style={{ marginRight: "5rem" }}>
         <span ref={myRef} />
+        {a}
       </div>
     </>
   );

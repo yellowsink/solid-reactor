@@ -1,10 +1,25 @@
-import { BlockStatement, JSXAttributeName, Program, Statement } from "@swc/core";
+import {
+  ArrowFunctionExpression,
+  Expression,
+  Fn,
+  JSXAttributeName,
+  Param,
+  Pattern,
+  Program,
+  Statement,
+} from "@swc/core";
+import {
+  AuxVisitor,
+  blankSpan,
+  emitBlockStatement,
+  emitIdentifier,
+} from "emitkit";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
-import { AuxVisitor } from "emitkit";
 import callify from "./transforms/callify.js";
 import currentify from "./transforms/currentify.js";
 import convertStyles from "./transforms/convertStyles.js";
+import memberify from "./transforms/memberify.js";
 
 const extractHookStmts = (stmts: Statement[]) =>
   stmts
@@ -42,30 +57,80 @@ const processHooks = (
   }
 };
 
-export class Reactor extends AuxVisitor {
-  auxVisitBlockStatement(
-    block: BlockStatement
-  ): [BlockStatement, boolean] | undefined {
-    const hookStmts = extractHookStmts(block.stmts);
+const extractProps = (param: Pattern) => {
+  if (param.type !== "ObjectPattern") return;
+  const lookup = new Map<string, string>();
 
-    if (hookStmts.length === 0) return;
+  for (const prop of param.properties) {
+    if (
+      prop.type === "KeyValuePatternProperty" &&
+      prop.key.type === "Identifier" &&
+      prop.value.type === "Identifier"
+    )
+      lookup.set(prop.key.value, prop.value.value);
+    else if (prop.type === "AssignmentPatternProperty")
+      lookup.set(prop.key.value, prop.key.value);
+  }
+
+  return lookup;
+};
+
+export class Reactor extends AuxVisitor {
+  visitArrowFunctionExpression(e: ArrowFunctionExpression): Expression {
+    const func = this.visitFunction({
+      body:
+        e.body.type === "BlockStatement"
+          ? e.body
+          : emitBlockStatement({
+              type: "ReturnStatement",
+              span: blankSpan,
+              argument: e.body,
+            }),
+      async: e.async,
+      generator: false,
+      params: e.params.map(
+        (p): Param => ({ type: "Parameter", pat: p, span: blankSpan })
+      ),
+      span: e.span,
+    });
+
+    e.body = func.body;
+    e.params = func.params.map((p) => p.pat);
+    return e;
+  }
+
+  visitFunction<T extends Fn>(n: T): T {
+    const hookStmts = extractHookStmts(n.body.stmts);
+
+    if (hookStmts.length === 0) return n;
 
     const getters = extractGetters(hookStmts);
 
     const refs = new Set<string>();
 
-    processHooks(block.stmts, hookStmts, getters, refs);
+    const propReplaces = n.params[0] && extractProps(n.params[0].pat);
+
+    processHooks(n.body.stmts, hookStmts, getters, refs);
 
     // call applicable getters (from createSignal etc)
-    block = callify(block, getters);
+    n.body = callify(n.body, getters);
 
     // add .current to applicable refs
-    block = currentify(block, refs);
+    n.body = currentify(n.body, refs);
 
     // camelCase styles to skewer-case styles
-    block = convertStyles(block);
+    n.body = convertStyles(n.body);
 
-    return [block, true];
+    // re-structure props
+    if (propReplaces) {
+      n.params[0].pat = emitIdentifier("$$__REACTOR_PROPS");
+      n.body = memberify(n.body, propReplaces, "$$__REACTOR_PROPS");
+    }
+
+    this.visitParameters(n.params);
+    this.visitBlockStatement(n.body);
+
+    return n;
   }
 
   visitJSXAttributeName(n: JSXAttributeName): JSXAttributeName {
@@ -83,6 +148,5 @@ export class Reactor extends AuxVisitor {
     return n;
   }
 }
-
 
 export default (m: Program) => new Reactor().visitProgram(m);
