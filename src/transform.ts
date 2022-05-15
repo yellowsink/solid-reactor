@@ -3,6 +3,8 @@ import {
   Expression,
   Fn,
   JSXAttributeName,
+  Module,
+  NamedImportSpecifier,
   Param,
   Pattern,
   Program,
@@ -13,6 +15,7 @@ import {
   blankSpan,
   emitBlockStatement,
   emitIdentifier,
+  emitStringLiteral,
 } from "emitkit";
 import { ReactHook, stmtExtractReactHooks } from "./hookExtractor.js";
 import emitHook from "./emitHook.js";
@@ -42,10 +45,13 @@ const processHooks = (
   getters: Set<string>,
   refs: Set<string>
 ) => {
+  const newSFs: string[] = [];
   for (const [hookIdx, hook] of hookStmts) {
     const maybeNewHook = emitHook(hook, Array.from(getters.keys()));
     if (!maybeNewHook) continue;
-    const [newHook, newGetters, newRefs] = maybeNewHook;
+    const [newHook, newGetters, newRefs, newSolidFuncs] = maybeNewHook;
+
+    newSFs.push(...newSolidFuncs);
 
     stmts.splice(hookIdx, 1, ...newHook);
 
@@ -55,6 +61,8 @@ const processHooks = (
     for (let i = hookIdx; i < hookStmts.length; i++)
       hookStmts[i][0] += newHook.length - 1;
   }
+
+  return Array.from(new Set(newSFs));
 };
 
 const extractProps = (param: Pattern) => {
@@ -76,6 +84,8 @@ const extractProps = (param: Pattern) => {
 };
 
 export class Reactor extends AuxVisitor {
+  solidHooksToImport?: string[];
+
   visitArrowFunctionExpression(e: ArrowFunctionExpression): Expression {
     const func = this.visitFunction({
       body:
@@ -110,7 +120,8 @@ export class Reactor extends AuxVisitor {
 
     const propReplaces = n.params[0] && extractProps(n.params[0].pat);
 
-    processHooks(n.body.stmts, hookStmts, getters, refs);
+    const newHooks = processHooks(n.body.stmts, hookStmts, getters, refs);
+    this.solidHooksToImport?.push(...newHooks);
 
     // call applicable getters (from createSignal etc)
     n.body = callify(n.body, getters);
@@ -131,6 +142,40 @@ export class Reactor extends AuxVisitor {
     this.visitBlockStatement(n.body);
 
     return n;
+  }
+
+  visitModule(m: Module): Module {
+    // oh how wonderful this code is
+    const newHooks = [];
+    for (let i = 0; i < m.body.length; i++) {
+      const item = m.body[i];
+      if (item.type === "ImportDeclaration" && item.source.value === "react") {
+        m.body.splice(i, 1);
+        i--;
+        continue;
+      }
+
+      this.solidHooksToImport = [];
+      this.visitModuleItem(m.body[i]);
+      newHooks.push(...this.solidHooksToImport);
+    }
+
+    if (newHooks.length !== 0)
+      m.body.splice(0, 0, {
+        type: "ImportDeclaration",
+        source: emitStringLiteral("solid-js"),
+        span: blankSpan,
+        specifiers: newHooks.map(
+          (h): NamedImportSpecifier => ({
+            type: "ImportSpecifier",
+            imported: null,
+            span: blankSpan,
+            local: emitIdentifier(h),
+          })
+        ),
+      });
+
+    return m;
   }
 
   visitJSXAttributeName(n: JSXAttributeName): JSXAttributeName {

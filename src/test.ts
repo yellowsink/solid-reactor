@@ -5,6 +5,8 @@ import * as swc from "@swc/core";
 const transformed = jsxTransform(swc)(
   `
 
+import { useReducer } from "react";
+
 export default ({a, b}) => {
   const [state, setState] = React.useState(0);
   let [, rerender] = useReducer((a) => ~a, 0);

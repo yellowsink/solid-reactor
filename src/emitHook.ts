@@ -106,7 +106,7 @@ const emitCreateReducer = (
 
 const emitCreateRef = (
   hook: StrReturningReactHook
-): [Statement[], [], string[]] => [
+): [Statement[], [], string[], []] => [
   [
     emitVariableDeclaration(
       hook.return.declType,
@@ -123,6 +123,7 @@ const emitCreateRef = (
   ],
   [],
   [hook.return.target],
+  [],
 ];
 
 const emitCreateEffect = (
@@ -151,16 +152,16 @@ const emitCreateEffect = (
 export default (
   hook: ReactHook,
   getters: string[]
-): [Statement[], string[], string[]] | undefined => {
+): [Statement[], string[], string[], string[]] | undefined => {
   switch (hook.hookType) {
     case "useState":
       return isArrReturningReactHook(hook)
-        ? [[emitCreateSignal(hook)], [], []]
+        ? [[emitCreateSignal(hook)], [], [], ["createSignal"]]
         : undefined;
 
     case "useReducer":
       return isArrReturningReactHook(hook)
-        ? [...emitCreateReducer(hook), []]
+        ? [...emitCreateReducer(hook), [], ["createSignal"]]
         : undefined;
 
     case "useEffect":
@@ -169,6 +170,7 @@ export default (
             [emitExpressionStatement(emitCreateEffect(hook.params, getters))],
             [],
             [],
+            ["createEffect"],
           ]
         : undefined;
 
