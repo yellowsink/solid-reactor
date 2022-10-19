@@ -170,7 +170,7 @@ export default (
             [emitExpressionStatement(emitCreateEffect(hook.params, getters))],
             [],
             [],
-            ["createEffect"],
+            ["createEffect", "on"],
           ]
         : undefined;
 
